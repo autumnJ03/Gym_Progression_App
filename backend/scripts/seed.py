@@ -31,27 +31,27 @@ SESSIONS = [
         "Push",
         1,
         [
-            ("Bench Press", 3, 5, Decimal("2.5"), 1),
-            ("Overhead Press", 3, 5, Decimal("1.25"), 2),
-            ("Incline Bench Press", 3, 8, Decimal("1.25"), 3),
+            ("Bench Press", 3, 5, Decimal("5.0"), 1),
+            ("Overhead Press", 3, 5, Decimal("2.5"), 2),
+            ("Incline Bench Press", 3, 8, Decimal("2.5"), 3),
         ],
     ),
     (
         "Pull",
         2,
         [
-            ("Deadlift", 1, 5, Decimal("2.5"), 1),
-            ("Barbell Row", 3, 5, Decimal("2.5"), 2),
-            ("Pull-up", 3, 8, Decimal("1.25"), 3),
+            ("Deadlift", 1, 5, Decimal("5.0"), 1),
+            ("Barbell Row", 3, 5, Decimal("5.0"), 2),
+            ("Pull-up", 3, 8, Decimal("2.5"), 3),
         ],
     ),
     (
         "Legs",
         3,
         [
-            ("Squat", 3, 5, Decimal("2.5"), 1),
-            ("Leg Press", 3, 10, Decimal("5.0"), 2),
-            ("Leg Curl", 3, 10, Decimal("2.5"), 3),
+            ("Squat", 3, 5, Decimal("5.0"), 1),
+            ("Leg Press", 3, 10, Decimal("10.0"), 2),
+            ("Leg Curl", 3, 10, Decimal("5.0"), 3),
         ],
     ),
 ]

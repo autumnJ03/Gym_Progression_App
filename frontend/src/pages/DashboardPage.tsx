@@ -109,7 +109,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-right">
               <p className="text-orange-400 font-semibold text-sm">
-                {Number(ex.current_weight) === 0 ? '—' : `${ex.current_weight} kg`}
+                {Number(ex.current_weight) === 0 ? '—' : `${ex.current_weight} lbs`}
               </p>
             </div>
           </div>

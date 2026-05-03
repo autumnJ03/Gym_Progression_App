@@ -134,7 +134,7 @@ export default function WorkoutPage() {
                 <h3 className="text-white font-medium">{ex.exercise_name}</h3>
                 <span className="text-xs text-neutral-500">
                   {ex.sets_prescribed} × {ex.reps_prescribed} reps
-                  {Number(ex.current_weight) > 0 && ` @ ${ex.current_weight} kg`}
+                  {Number(ex.current_weight) > 0 && ` @ ${ex.current_weight} lbs`}
                 </span>
               </div>
 
@@ -150,7 +150,7 @@ export default function WorkoutPage() {
                           : 'bg-red-900/30 text-red-400 border border-red-800'
                       }`}
                     >
-                      Set {s.setNumber}: {s.weightUsed}kg × {s.repsCompleted}{' '}
+                      Set {s.setNumber}: {s.weightUsed} lbs × {s.repsCompleted}{' '}
                       {s.hit ? '✓' : '✗'}
                     </div>
                   ))}
@@ -167,10 +167,10 @@ export default function WorkoutPage() {
                     min="0"
                     value={getInput(ex, 'weight')}
                     onChange={(e) => setInput(ex.session_exercise_id, 'weight', e.target.value)}
-                    placeholder="kg"
+                    placeholder="lbs"
                     className="w-20 bg-[#111] border border-neutral-700 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-orange-500"
                   />
-                  <span className="text-neutral-600 text-xs">kg</span>
+                  <span className="text-neutral-600 text-xs">lbs</span>
                   <input
                     type="number"
                     min="0"
