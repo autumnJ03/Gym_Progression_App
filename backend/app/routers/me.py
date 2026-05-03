@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func, select, update
@@ -127,7 +127,7 @@ async def user_status(
     if last_completed is None:
         return UserStatusOut(days_idle=None, show_return_prompt=False)
 
-    days_idle = (datetime.now(timezone.utc) - last_completed.replace(tzinfo=timezone.utc)).days
+    days_idle = (datetime.utcnow() - last_completed).days
     return UserStatusOut(days_idle=days_idle, show_return_prompt=days_idle > 30)
 
 

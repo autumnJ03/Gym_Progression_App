@@ -1,5 +1,5 @@
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 
 from fastapi import HTTPException, status
@@ -67,7 +67,7 @@ async def complete_workout(db: AsyncSession, workout_log_id: int, user_id: int) 
             db, up.id, se.exercise_id, new_state.current_weight, new_state.consecutive_misses
         )
 
-    log.completed_at = datetime.now(timezone.utc)
+    log.completed_at = datetime.utcnow()
 
     total = (
         await db.execute(
