@@ -29,3 +29,13 @@ class LogSetRequest(BaseModel):
 class UserStatusOut(BaseModel):
     days_idle: int | None
     show_return_prompt: bool
+
+
+class EnrollRequest(BaseModel):
+    program_id: int
+
+
+class EnrollmentOut(BaseModel):
+    id: int
+    program_id: int
+    next_session_position: int
