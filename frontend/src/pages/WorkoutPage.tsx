@@ -71,13 +71,16 @@ export default function WorkoutPage() {
 
   const allDone = session.exercises.every(allSetsLogged)
 
-  function handleLog(ex: TodayExercise) {
-    const inp = inputs[ex.session_exercise_id] ?? {
-      weight: String(ex.current_weight || ex.sets_prescribed),
-      reps: String(ex.reps_prescribed),
+  function getInput(ex: TodayExercise, field: 'weight' | 'reps'): string {
+    if (field === 'weight') {
+      return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight || '')
     }
-    const weight = parseFloat(inp.weight)
-    const reps = parseInt(inp.reps)
+    return inputs[ex.session_exercise_id]?.reps ?? '8'
+  }
+
+  function handleLog(ex: TodayExercise) {
+    const weight = parseFloat(getInput(ex, 'weight'))
+    const reps = parseInt(getInput(ex, 'reps'))
     if (isNaN(weight) || isNaN(reps)) return
     logMutation.mutate({
       seId: ex.session_exercise_id,
@@ -85,13 +88,6 @@ export default function WorkoutPage() {
       weight,
       reps,
     })
-  }
-
-  function getInput(ex: TodayExercise, field: 'weight' | 'reps'): string {
-    if (field === 'weight') {
-      return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight || '')
-    }
-    return inputs[ex.session_exercise_id]?.reps ?? String(ex.reps_prescribed)
   }
 
   function setInput(seId: number, field: 'weight' | 'reps', value: string) {
@@ -167,7 +163,7 @@ export default function WorkoutPage() {
                     min="0"
                     value={getInput(ex, 'weight')}
                     onChange={(e) => setInput(ex.session_exercise_id, 'weight', e.target.value)}
-                    placeholder="lbs"
+                    placeholder="0"
                     className="w-20 bg-[#111] border border-neutral-700 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-orange-500"
                   />
                   <span className="text-neutral-600 text-xs">lbs</span>
