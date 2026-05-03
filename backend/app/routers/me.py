@@ -1,13 +1,19 @@
+from datetime import datetime, timezone
+
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user_id
 from app.database import get_db
 from app.models.program import Program
+from app.models.user_exercise_state import UserExerciseState
+from app.models.workout_log import WorkoutLog
 from app.repositories import session as session_repo
 from app.repositories import user_program as user_program_repo
 from app.repositories import workout as workout_repo
-from app.schemas.workout import EnrollRequest, EnrollmentOut, TodaySessionOut
+from app.schemas.workout import EnrollRequest, EnrollmentOut, TodaySessionOut, UserStatusOut
+from app.services.progression import apply_return_reduction
 
 router = APIRouter()
 
@@ -89,13 +95,48 @@ async def start_session(
     return {"workout_log_id": log.id}
 
 
-@router.get("/status")
-async def user_status(user_id: int = Depends(get_current_user_id)):
-    # TODO: compute days_idle from MAX(completed_at)
-    raise NotImplementedError
+@router.get("/status", response_model=UserStatusOut)
+async def user_status(
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    up = await user_program_repo.get_active(db, user_id)
+    if not up:
+        return UserStatusOut(days_idle=None, show_return_prompt=False)
+
+    last_completed = (
+        await db.execute(
+            select(func.max(WorkoutLog.completed_at)).where(
+                WorkoutLog.user_program_id == up.id,
+                WorkoutLog.completed_at != None,
+            )
+        )
+    ).scalar_one()
+
+    if last_completed is None:
+        return UserStatusOut(days_idle=None, show_return_prompt=False)
+
+    days_idle = (datetime.now(timezone.utc) - last_completed.replace(tzinfo=timezone.utc)).days
+    return UserStatusOut(days_idle=days_idle, show_return_prompt=days_idle > 30)
 
 
-@router.post("/accept-return-reduction")
-async def accept_return_reduction(user_id: int = Depends(get_current_user_id)):
-    # TODO: apply 10% deload to all exercises in active program
-    raise NotImplementedError
+@router.post("/accept-return-reduction", status_code=status.HTTP_200_OK)
+async def accept_return_reduction(
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    up = await user_program_repo.get_active(db, user_id)
+    if not up:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No active program")
+
+    states = (
+        await db.execute(
+            select(UserExerciseState).where(UserExerciseState.user_program_id == up.id)
+        )
+    ).scalars().all()
+
+    for state in states:
+        state.current_weight = apply_return_reduction(state.current_weight)
+
+    await db.commit()
+    return {"status": "reduced"}
