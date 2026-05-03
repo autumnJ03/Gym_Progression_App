@@ -11,9 +11,6 @@ export async function register(email: string, password: string): Promise<TokenRe
 }
 
 export async function login(email: string, password: string): Promise<TokenResponse> {
-  const form = new URLSearchParams({ username: email, password })
-  const { data } = await client.post<TokenResponse>('/auth/login', form, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-  })
+  const { data } = await client.post<TokenResponse>('/auth/login', { email, password })
   return data
 }
