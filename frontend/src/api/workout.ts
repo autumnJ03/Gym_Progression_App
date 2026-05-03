@@ -21,7 +21,7 @@ export async function logSet(
   weightUsed: number,
   repsCompleted: number
 ): Promise<SetResult> {
-  const { data } = await client.post<SetResult>(`/workout/${workoutLogId}/sets`, {
+  const { data } = await client.post<SetResult>(`/me/workout/${workoutLogId}/sets`, {
     session_exercise_id: sessionExerciseId,
     set_number: setNumber,
     weight_used: weightUsed,
@@ -31,5 +31,5 @@ export async function logSet(
 }
 
 export async function completeWorkout(workoutLogId: number): Promise<void> {
-  await client.post(`/workout/${workoutLogId}/complete`)
+  await client.post(`/me/workout/${workoutLogId}/complete`)
 }
