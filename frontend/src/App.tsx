@@ -7,6 +7,7 @@ import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import ProgramsPage from './pages/ProgramsPage'
 import WorkoutPage from './pages/WorkoutPage'
+import ProgressPage from './pages/ProgressPage'
 
 const qc = new QueryClient()
 
@@ -22,6 +23,7 @@ export default function App() {
               <Route path="/" element={<DashboardPage />} />
               <Route path="/programs" element={<ProgramsPage />} />
               <Route path="/workout/:workoutLogId" element={<WorkoutPage />} />
+              <Route path="/progress" element={<ProgressPage />} />
             </Route>
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

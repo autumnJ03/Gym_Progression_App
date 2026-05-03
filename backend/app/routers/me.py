@@ -8,11 +8,22 @@ from app.auth.dependencies import get_current_user_id
 from app.database import get_db
 from app.models.program import Program
 from app.models.user_exercise_state import UserExerciseState
+from app.models.user_program import UserProgram
 from app.models.workout_log import WorkoutLog
 from app.repositories import session as session_repo
 from app.repositories import user_program as user_program_repo
 from app.repositories import workout as workout_repo
-from app.schemas.workout import EnrollRequest, EnrollmentOut, TodaySessionOut, UserStatusOut
+from app.models.exercise import Exercise
+from app.models.session_exercise import SessionExercise
+from app.models.set_log import SetLog
+from app.schemas.workout import (
+    EnrollRequest,
+    EnrollmentOut,
+    ExerciseProgressOut,
+    ProgressPointOut,
+    TodaySessionOut,
+    UserStatusOut,
+)
 from app.services.progression import apply_return_reduction
 
 router = APIRouter()
@@ -140,3 +151,37 @@ async def accept_return_reduction(
 
     await db.commit()
     return {"status": "reduced"}
+
+
+@router.get("/progress", response_model=list[ExerciseProgressOut])
+async def progress(
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    rows = (
+        await db.execute(
+            select(
+                Exercise.name,
+                WorkoutLog.completed_at,
+                func.max(SetLog.weight_used).label("max_weight"),
+            )
+            .join(SetLog, SetLog.workout_log_id == WorkoutLog.id)
+            .join(SessionExercise, SetLog.session_exercise_id == SessionExercise.id)
+            .join(Exercise, SessionExercise.exercise_id == Exercise.id)
+            .join(UserProgram, WorkoutLog.user_program_id == UserProgram.id)
+            .where(UserProgram.user_id == user_id, WorkoutLog.completed_at != None)
+            .group_by(Exercise.name, WorkoutLog.id, WorkoutLog.completed_at)
+            .order_by(Exercise.name, WorkoutLog.completed_at)
+        )
+    ).all()
+
+    grouped: dict[str, list[ProgressPointOut]] = {}
+    for name, completed_at, max_weight in rows:
+        grouped.setdefault(name, []).append(
+            ProgressPointOut(
+                date=completed_at.strftime("%Y-%m-%d"),
+                weight=float(max_weight),
+            )
+        )
+
+    return [ExerciseProgressOut(exercise_name=k, history=v) for k, v in grouped.items()]

@@ -31,6 +31,16 @@ class UserStatusOut(BaseModel):
     show_return_prompt: bool
 
 
+class ProgressPointOut(BaseModel):
+    date: str
+    weight: float
+
+
+class ExerciseProgressOut(BaseModel):
+    exercise_name: str
+    history: list[ProgressPointOut]
+
+
 class EnrollRequest(BaseModel):
     program_id: int
 

@@ -30,6 +30,14 @@ export default function Layout() {
         >
           Programs
         </NavLink>
+        <NavLink
+          to="/progress"
+          className={({ isActive }) =>
+            `text-sm ${isActive ? 'text-white' : 'text-neutral-400 hover:text-neutral-200'}`
+          }
+        >
+          Progress
+        </NavLink>
         <button
           onClick={logout}
           className="ml-auto text-sm text-neutral-500 hover:text-neutral-300 cursor-pointer"
