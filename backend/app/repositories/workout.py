@@ -1,6 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.session_exercise import SessionExercise
+from app.models.set_log import SetLog
+from app.models.user_program import UserProgram
 from app.models.workout_log import WorkoutLog
 
 
@@ -20,3 +23,56 @@ async def start(db: AsyncSession, user_program_id: int, session_id: int) -> Work
     await db.commit()
     await db.refresh(log)
     return log
+
+
+async def get_by_id_for_user(
+    db: AsyncSession, workout_log_id: int, user_id: int
+) -> WorkoutLog | None:
+    result = await db.execute(
+        select(WorkoutLog)
+        .join(UserProgram, WorkoutLog.user_program_id == UserProgram.id)
+        .where(WorkoutLog.id == workout_log_id, UserProgram.user_id == user_id)
+    )
+    return result.scalar_one_or_none()
+
+
+async def get_session_exercise(
+    db: AsyncSession, session_exercise_id: int, session_id: int
+) -> SessionExercise | None:
+    result = await db.execute(
+        select(SessionExercise).where(
+            SessionExercise.id == session_exercise_id,
+            SessionExercise.session_id == session_id,
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+async def log_set(
+    db: AsyncSession,
+    workout_log_id: int,
+    session_exercise_id: int,
+    set_number: int,
+    weight_used,
+    reps_completed: int,
+    reps_prescribed: int,
+) -> SetLog:
+    entry = SetLog(
+        workout_log_id=workout_log_id,
+        session_exercise_id=session_exercise_id,
+        set_number=set_number,
+        weight_used=weight_used,
+        reps_completed=reps_completed,
+        hit=reps_completed >= reps_prescribed,
+    )
+    db.add(entry)
+    await db.commit()
+    await db.refresh(entry)
+    return entry
+
+
+async def get_sets_for_workout(db: AsyncSession, workout_log_id: int) -> list[SetLog]:
+    result = await db.execute(
+        select(SetLog).where(SetLog.workout_log_id == workout_log_id)
+    )
+    return list(result.scalars().all())
