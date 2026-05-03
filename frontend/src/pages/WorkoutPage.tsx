@@ -73,7 +73,7 @@ export default function WorkoutPage() {
 
   function getInput(ex: TodayExercise, field: 'weight' | 'reps'): string {
     if (field === 'weight') {
-      return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight || '')
+      return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight)
     }
     return inputs[ex.session_exercise_id]?.reps ?? '8'
   }
@@ -104,7 +104,7 @@ export default function WorkoutPage() {
           <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Workout</p>
           <h2 className="text-2xl font-semibold text-white">{session.session_name}</h2>
         </div>
-        {allDone && (
+        {allDone ? (
           <button
             onClick={() => completeMutation.mutate()}
             disabled={completeMutation.isPending}
@@ -112,6 +112,11 @@ export default function WorkoutPage() {
           >
             {completeMutation.isPending ? 'Saving…' : 'Complete workout ✓'}
           </button>
+        ) : (
+          <span className="text-xs text-neutral-500">
+            {session.exercises.reduce((sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0), 0)}
+            /{session.exercises.reduce((sum, ex) => sum + ex.sets_prescribed, 0)} sets done
+          </span>
         )}
       </div>
 
@@ -128,10 +133,18 @@ export default function WorkoutPage() {
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-white font-medium">{ex.exercise_name}</h3>
-                <span className="text-xs text-neutral-500">
-                  {ex.sets_prescribed} × {ex.reps_prescribed} reps
-                  {Number(ex.current_weight) > 0 && ` @ ${ex.current_weight} lbs`}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-neutral-500">
+                    {Number(ex.current_weight) > 0 ? `${ex.current_weight} lbs` : `${ex.reps_prescribed} reps`}
+                  </span>
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                    done
+                      ? 'bg-green-900/40 text-green-400'
+                      : 'bg-neutral-800 text-neutral-400'
+                  }`}>
+                    {logged.length}/{ex.sets_prescribed} sets
+                  </span>
+                </div>
               </div>
 
               {/* logged sets */}
@@ -186,9 +199,6 @@ export default function WorkoutPage() {
                 </div>
               )}
 
-              {done && (
-                <p className="text-xs text-green-500">All sets logged ✓</p>
-              )}
             </div>
           )
         })}
