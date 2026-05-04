@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -76,3 +78,27 @@ async def get_sets_for_workout(db: AsyncSession, workout_log_id: int) -> list[Se
         select(SetLog).where(SetLog.workout_log_id == workout_log_id)
     )
     return list(result.scalars().all())
+
+
+async def update_set(
+    db: AsyncSession,
+    set_log_id: int,
+    workout_log_id: int,
+    weight_used: Decimal,
+    reps_completed: int,
+) -> SetLog | None:
+    result = await db.execute(
+        select(SetLog, SessionExercise)
+        .join(SessionExercise, SetLog.session_exercise_id == SessionExercise.id)
+        .where(SetLog.id == set_log_id, SetLog.workout_log_id == workout_log_id)
+    )
+    row = result.one_or_none()
+    if not row:
+        return None
+    entry, se = row
+    entry.weight_used = weight_used
+    entry.reps_completed = reps_completed
+    entry.hit = reps_completed >= se.reps_prescribed
+    await db.commit()
+    await db.refresh(entry)
+    return entry

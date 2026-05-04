@@ -9,6 +9,15 @@ export interface SetResult {
   hit: boolean
 }
 
+export interface SetLog {
+  id: number
+  session_exercise_id: number
+  set_number: number
+  weight_used: number
+  reps_completed: number
+  hit: boolean
+}
+
 export async function startWorkout(): Promise<WorkoutLog> {
   const { data } = await client.post<WorkoutLog>('/me/session/today/start')
   return data
@@ -32,4 +41,22 @@ export async function logSet(
 
 export async function completeWorkout(workoutLogId: number): Promise<void> {
   await client.post(`/me/workout/${workoutLogId}/complete`)
+}
+
+export async function getSets(workoutLogId: number): Promise<SetLog[]> {
+  const { data } = await client.get<SetLog[]>(`/me/workout/${workoutLogId}/sets`)
+  return data
+}
+
+export async function updateSet(
+  workoutLogId: number,
+  setLogId: number,
+  weightUsed: number,
+  repsCompleted: number,
+): Promise<SetResult> {
+  const { data } = await client.patch<SetResult>(
+    `/me/workout/${workoutLogId}/sets/${setLogId}`,
+    { weight_used: weightUsed, reps_completed: repsCompleted },
+  )
+  return data
 }

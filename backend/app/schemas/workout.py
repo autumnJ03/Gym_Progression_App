@@ -26,6 +26,20 @@ class LogSetRequest(BaseModel):
     reps_completed: int
 
 
+class UpdateSetRequest(BaseModel):
+    weight_used: Decimal
+    reps_completed: int
+
+
+class SetLogOut(BaseModel):
+    id: int
+    session_exercise_id: int
+    set_number: int
+    weight_used: float
+    reps_completed: int
+    hit: bool
+
+
 class UserStatusOut(BaseModel):
     days_idle: int | None
     show_return_prompt: bool

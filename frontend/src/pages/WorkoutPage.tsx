@@ -1,14 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getTodaySession, type TodayExercise } from '../api/programs'
-import { completeWorkout, logSet } from '../api/workout'
+import { completeWorkout, getSets, logSet, updateSet } from '../api/workout'
 
 interface LoggedSet {
+  id: number
   setNumber: number
   weightUsed: number
   repsCompleted: number
   hit: boolean
+}
+
+interface EditingSet {
+  setLogId: number
+  seId: number
+  weight: string
+  reps: string
 }
 
 export default function WorkoutPage() {
@@ -16,32 +24,52 @@ export default function WorkoutPage() {
   const navigate = useNavigate()
   const id = Number(workoutLogId)
 
-  const { data: session, isLoading } = useQuery({
+  const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ['today'],
     queryFn: getTodaySession,
   })
 
+  const { data: existingSets, isLoading: setsLoading } = useQuery({
+    queryKey: ['sets', id],
+    queryFn: () => getSets(id),
+    enabled: !isNaN(id),
+  })
+
   const [loggedSets, setLoggedSets] = useState<Record<number, LoggedSet[]>>({})
   const [inputs, setInputs] = useState<Record<number, { weight: string; reps: string }>>({})
+  const [editingSet, setEditingSet] = useState<EditingSet | null>(null)
+  const initializedRef = useRef(false)
+
+  // Populate logged sets from server on resume
+  useEffect(() => {
+    if (!existingSets || !session || initializedRef.current) return
+    initializedRef.current = true
+    const grouped: Record<number, LoggedSet[]> = {}
+    for (const s of existingSets) {
+      if (!grouped[s.session_exercise_id]) grouped[s.session_exercise_id] = []
+      grouped[s.session_exercise_id].push({
+        id: s.id,
+        setNumber: s.set_number,
+        weightUsed: s.weight_used,
+        repsCompleted: s.reps_completed,
+        hit: s.hit,
+      })
+    }
+    setLoggedSets(grouped)
+  }, [existingSets, session])
 
   const logMutation = useMutation({
     mutationFn: ({
-      seId,
-      setNum,
-      weight,
-      reps,
-    }: {
-      seId: number
-      setNum: number
-      weight: number
-      reps: number
-    }) => logSet(id, seId, setNum, weight, reps),
+      seId, setNum, weight, reps,
+    }: { seId: number; setNum: number; weight: number; reps: number }) =>
+      logSet(id, seId, setNum, weight, reps),
     onSuccess: (result, vars) => {
       setLoggedSets((prev) => ({
         ...prev,
         [vars.seId]: [
           ...(prev[vars.seId] ?? []),
           {
+            id: result.id,
             setNumber: vars.setNum,
             weightUsed: vars.weight,
             repsCompleted: vars.reps,
@@ -52,12 +80,31 @@ export default function WorkoutPage() {
     },
   })
 
+  const updateMutation = useMutation({
+    mutationFn: ({ setLogId, weight, reps }: { setLogId: number; weight: number; reps: number }) =>
+      updateSet(id, setLogId, weight, reps),
+    onSuccess: (result, vars) => {
+      setLoggedSets((prev) => {
+        const updated = { ...prev }
+        for (const seId of Object.keys(updated)) {
+          updated[Number(seId)] = updated[Number(seId)].map((s) =>
+            s.id === vars.setLogId
+              ? { ...s, weightUsed: vars.weight, repsCompleted: vars.reps, hit: result.hit }
+              : s
+          )
+        }
+        return updated
+      })
+      setEditingSet(null)
+    },
+  })
+
   const completeMutation = useMutation({
     mutationFn: () => completeWorkout(id),
     onSuccess: () => navigate('/'),
   })
 
-  if (isLoading || !session) {
+  if (sessionLoading || setsLoading || !session) {
     return (
       <div className="flex items-center justify-center py-24">
         <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
@@ -75,15 +122,12 @@ export default function WorkoutPage() {
 
   const allDone = session.exercises.every(allSetsLogged)
   const totalDone = session.exercises.reduce(
-    (sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0),
-    0
+    (sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0), 0
   )
   const totalSets = session.exercises.reduce((sum, ex) => sum + ex.sets_prescribed, 0)
 
   function getInput(ex: TodayExercise, field: 'weight' | 'reps'): string {
-    if (field === 'weight') {
-      return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight)
-    }
+    if (field === 'weight') return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight)
     return inputs[ex.session_exercise_id]?.reps ?? '8'
   }
 
@@ -91,19 +135,19 @@ export default function WorkoutPage() {
     const weight = parseFloat(getInput(ex, 'weight'))
     const reps = parseInt(getInput(ex, 'reps'))
     if (isNaN(weight) || isNaN(reps)) return
-    logMutation.mutate({
-      seId: ex.session_exercise_id,
-      setNum: getNextSetNumber(ex),
-      weight,
-      reps,
-    })
+    logMutation.mutate({ seId: ex.session_exercise_id, setNum: getNextSetNumber(ex), weight, reps })
   }
 
   function setInput(seId: number, field: 'weight' | 'reps', value: string) {
-    setInputs((prev) => ({
-      ...prev,
-      [seId]: { ...prev[seId], [field]: value },
-    }))
+    setInputs((prev) => ({ ...prev, [seId]: { ...prev[seId], [field]: value } }))
+  }
+
+  function handleSaveEdit() {
+    if (!editingSet) return
+    const weight = parseFloat(editingSet.weight)
+    const reps = parseInt(editingSet.reps)
+    if (isNaN(weight) || isNaN(reps)) return
+    updateMutation.mutate({ setLogId: editingSet.setLogId, weight, reps })
   }
 
   return (
@@ -142,17 +186,15 @@ export default function WorkoutPage() {
             <div
               key={ex.session_exercise_id}
               className={`bg-[#141414] border rounded-2xl p-4 transition-all ${
-                done
-                  ? 'border-green-500/30'
-                  : 'border-neutral-800'
+                done ? 'border-green-500/30' : 'border-neutral-800'
               }`}
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-white font-semibold">{ex.exercise_name}</h3>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-500">
-                    {Number(ex.current_weight) > 0 ? `${ex.current_weight} lbs` : `BW`}
-                  </span>
+                  {Number(ex.current_weight) > 0 && (
+                    <span className="text-xs text-neutral-500">{ex.current_weight} lbs</span>
+                  )}
                   <span
                     className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
                       done
@@ -167,18 +209,65 @@ export default function WorkoutPage() {
 
               {logged.length > 0 && (
                 <div className="flex gap-2 mb-3 flex-wrap">
-                  {logged.map((s) => (
-                    <div
-                      key={s.setNumber}
-                      className={`text-xs px-2.5 py-1 rounded-lg font-medium ${
-                        s.hit
-                          ? 'bg-green-900/30 text-green-400 border border-green-800/60'
-                          : 'bg-red-900/20 text-red-400 border border-red-800/60'
-                      }`}
-                    >
-                      {s.weightUsed} lbs × {s.repsCompleted} {s.hit ? '✓' : '✗'}
-                    </div>
-                  ))}
+                  {logged.map((s) =>
+                    editingSet?.setLogId === s.id ? (
+                      <div key={s.id} className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          step="0.25"
+                          value={editingSet.weight}
+                          onChange={(e) => setEditingSet({ ...editingSet, weight: e.target.value })}
+                          className="w-16 bg-[#0f0f0f] border border-green-500/50 rounded-lg px-2 py-1 text-white text-xs text-center focus:outline-none"
+                        />
+                        <span className="text-neutral-600 text-xs">lbs</span>
+                        <input
+                          type="number"
+                          value={editingSet.reps}
+                          onChange={(e) => setEditingSet({ ...editingSet, reps: e.target.value })}
+                          className="w-12 bg-[#0f0f0f] border border-green-500/50 rounded-lg px-2 py-1 text-white text-xs text-center focus:outline-none"
+                        />
+                        <span className="text-neutral-600 text-xs">reps</span>
+                        <button
+                          onClick={handleSaveEdit}
+                          disabled={updateMutation.isPending}
+                          className="text-xs bg-green-500/20 border border-green-500/40 text-green-400 px-2 py-1 rounded-lg cursor-pointer hover:bg-green-500/30 transition-colors"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => setEditingSet(null)}
+                          className="text-xs text-neutral-500 hover:text-neutral-300 px-1 cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        key={s.id}
+                        className={`group flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg font-medium ${
+                          s.hit
+                            ? 'bg-green-900/30 text-green-400 border border-green-800/60'
+                            : 'bg-red-900/20 text-red-400 border border-red-800/60'
+                        }`}
+                      >
+                        {s.weightUsed} lbs × {s.repsCompleted} {s.hit ? '✓' : '✗'}
+                        <button
+                          onClick={() =>
+                            setEditingSet({
+                              setLogId: s.id,
+                              seId: ex.session_exercise_id,
+                              weight: String(s.weightUsed),
+                              reps: String(s.repsCompleted),
+                            })
+                          }
+                          className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-neutral-300 transition-opacity cursor-pointer ml-0.5"
+                          title="Edit set"
+                        >
+                          ✎
+                        </button>
+                      </div>
+                    )
+                  )}
                 </div>
               )}
 
