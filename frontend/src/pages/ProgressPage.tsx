@@ -10,15 +10,15 @@ import { getProgress } from '../api/progress'
 type ChartType = 'line' | 'bar'
 
 const CHART_TYPES: { type: ChartType; label: string }[] = [
-  { type: 'line', label: 'Line' },
-  { type: 'bar', label: 'Bar' },
+  { type: 'bar', label: '▮▮ Bar' },
+  { type: 'line', label: '〜 Line' },
 ]
 
 const tooltipStyle = {
   contentStyle: {
-    background: '#1a1a1a',
-    border: '1px solid #2a2a2a',
-    borderRadius: '8px',
+    background: '#141414',
+    border: '1px solid rgba(34,197,94,0.2)',
+    borderRadius: '12px',
     color: '#e5e5e5',
     fontSize: '13px',
   },
@@ -28,7 +28,7 @@ const tooltipStyle = {
 const axisProps = {
   tickLine: false,
   axisLine: false,
-  tick: { fill: '#737373', fontSize: 11 },
+  tick: { fill: '#525252', fontSize: 11 },
 }
 
 export default function ProgressPage() {
@@ -40,15 +40,23 @@ export default function ProgressPage() {
   const [selected, setSelected] = useState<string>('')
   const [chartType, setChartType] = useState<ChartType>('bar')
 
-  if (isLoading) return <p className="text-neutral-500">Loading…</p>
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   if (error) return <p className="text-red-400">Failed to load progress.</p>
 
   if (!data || data.length === 0) {
     return (
-      <div>
-        <h2 className="text-xl font-semibold text-white mb-2">Progress</h2>
+      <div className="text-center py-16">
+        <div className="text-5xl mb-4">📈</div>
+        <h2 className="text-xl font-semibold text-white mb-2">No data yet</h2>
         <p className="text-neutral-400 text-sm">
-          No data yet — complete a workout to start tracking your progress.
+          Complete a workout to start tracking your progress.
         </p>
       </div>
     )
@@ -60,16 +68,19 @@ export default function ProgressPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white">Progress</h2>
-        <div className="flex gap-1 bg-neutral-800 p-1 rounded-lg">
+        <div>
+          <p className="text-xs text-green-500/70 uppercase tracking-widest font-medium mb-1">Tracking</p>
+          <h2 className="text-2xl font-bold text-white">Progress</h2>
+        </div>
+        <div className="flex gap-1 bg-neutral-900 border border-neutral-800 p-1 rounded-xl">
           {CHART_TYPES.map(({ type, label }) => (
             <button
               key={type}
               onClick={() => setChartType(type)}
-              className={`text-xs px-3 py-1 rounded-md transition-colors cursor-pointer ${
+              className={`text-xs px-3 py-1.5 rounded-lg transition-colors cursor-pointer ${
                 chartType === type
-                  ? 'bg-neutral-600 text-white'
-                  : 'text-neutral-400 hover:text-white'
+                  ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                  : 'text-neutral-500 hover:text-neutral-300'
               }`}
             >
               {label}
@@ -83,10 +94,10 @@ export default function ProgressPage() {
           <button
             key={ex.exercise_name}
             onClick={() => setSelected(ex.exercise_name)}
-            className={`text-sm px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
+            className={`text-sm px-3.5 py-1.5 rounded-xl border transition-all cursor-pointer ${
               activeExercise === ex.exercise_name
-                ? 'bg-orange-500 border-orange-500 text-white'
-                : 'border-neutral-700 text-neutral-400 hover:text-white hover:border-neutral-500'
+                ? 'bg-green-500/15 border-green-500/40 text-green-400 font-medium'
+                : 'border-neutral-800 text-neutral-400 hover:text-neutral-200 hover:border-neutral-600'
             }`}
           >
             {ex.exercise_name}
@@ -95,35 +106,38 @@ export default function ProgressPage() {
       </div>
 
       {exerciseData && (
-        <div className="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4">
-          <p className="text-white font-medium mb-4">{activeExercise}</p>
+        <div className="bg-[#141414] border border-neutral-800 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-5">
+            <p className="text-white font-semibold">{activeExercise}</p>
+            <p className="text-xs text-neutral-500">{exerciseData.history.length} sessions</p>
+          </div>
           {exerciseData.history.length < 2 ? (
-            <p className="text-neutral-500 text-sm">
+            <p className="text-neutral-500 text-sm py-8 text-center">
               Only one session logged — keep lifting to see your trend.
             </p>
           ) : (
             <ResponsiveContainer width="100%" height={260}>
               {chartType === 'bar' ? (
                 <BarChart data={exerciseData.history} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
                   <XAxis dataKey="date" {...axisProps} />
                   <YAxis {...axisProps} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} />
-                  <Bar dataKey="weight" fill="#f97316" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="weight" fill="#22c55e" radius={[6, 6, 0, 0]} />
                 </BarChart>
               ) : (
                 <LineChart data={exerciseData.history} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#2a2a2a" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" />
                   <XAxis dataKey="date" {...axisProps} />
                   <YAxis {...axisProps} domain={['auto', 'auto']} />
                   <Tooltip {...tooltipStyle} />
                   <Line
                     type="monotone"
                     dataKey="weight"
-                    stroke="#f97316"
-                    strokeWidth={2}
-                    dot={{ fill: '#f97316', r: 3 }}
-                    activeDot={{ r: 5 }}
+                    stroke="#22c55e"
+                    strokeWidth={2.5}
+                    dot={{ fill: '#22c55e', r: 4, strokeWidth: 0 }}
+                    activeDot={{ r: 6, fill: '#4ade80' }}
                   />
                 </LineChart>
               )}

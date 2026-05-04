@@ -47,11 +47,20 @@ export default function ProgramsPage() {
     },
   })
 
-  if (isLoading) return <p className="text-neutral-500">Loading…</p>
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div>
-      <h2 className="text-xl font-semibold text-white mb-6">Programs</h2>
+      <div className="mb-6">
+        <p className="text-xs text-green-500/70 uppercase tracking-widest font-medium mb-1">Training</p>
+        <h2 className="text-2xl font-bold text-white">Programs</h2>
+      </div>
 
       <div className="space-y-4">
         {programs?.map((program) => {
@@ -60,17 +69,19 @@ export default function ProgramsPage() {
           return (
             <div
               key={program.id}
-              className={`bg-[#1a1a1a] border rounded-xl p-5 ${
-                isEnrolled ? 'border-orange-500/50' : 'border-neutral-800'
+              className={`bg-[#141414] border rounded-2xl p-5 transition-all ${
+                isEnrolled
+                  ? 'border-green-500/40 glow-green-sm'
+                  : 'border-neutral-800 hover:border-neutral-700'
               }`}
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h3 className="text-white font-medium">{program.name}</h3>
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <h3 className="text-white font-semibold">{program.name}</h3>
                     {isEnrolled && (
-                      <span className="text-xs bg-orange-500/20 text-orange-400 border border-orange-500/30 px-2 py-0.5 rounded-full">
-                        Active
+                      <span className="text-xs bg-green-500/15 text-green-400 border border-green-500/30 px-2 py-0.5 rounded-full font-medium">
+                        ✓ Active
                       </span>
                     )}
                   </div>
@@ -90,7 +101,7 @@ export default function ProgramsPage() {
                     <button
                       onClick={() => enrollMutation.mutate(program.id)}
                       disabled={enrollMutation.isPending || !!enrollment}
-                      className="text-sm bg-orange-500 hover:bg-orange-600 disabled:opacity-40 text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                      className="text-sm bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold px-4 py-1.5 rounded-xl transition-colors cursor-pointer"
                     >
                       Enroll
                     </button>

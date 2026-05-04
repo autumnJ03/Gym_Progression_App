@@ -10,14 +10,20 @@ export default function Layout() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0f0f0f] text-neutral-100 flex flex-col">
-      <nav className="border-b border-neutral-800 px-6 py-4 flex items-center gap-6">
-        <span className="font-semibold text-orange-500 text-lg tracking-tight">GymProg</span>
+    <div className="min-h-screen bg-[#0a0a0a] text-neutral-100 flex flex-col">
+      <nav className="sticky top-0 z-50 border-b border-neutral-800/60 bg-[#0a0a0a]/80 backdrop-blur-md px-6 py-4 flex items-center gap-6">
+        <span className="font-bold text-green-400 text-lg tracking-tight">
+          🏋️ GymProg
+        </span>
         <NavLink
           to="/"
           end
           className={({ isActive }) =>
-            `text-sm ${isActive ? 'text-white' : 'text-neutral-400 hover:text-neutral-200'}`
+            `text-sm px-3 py-1.5 rounded-lg transition-colors ${
+              isActive
+                ? 'bg-green-500/10 text-green-400 font-medium'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60'
+            }`
           }
         >
           Today
@@ -25,7 +31,11 @@ export default function Layout() {
         <NavLink
           to="/programs"
           className={({ isActive }) =>
-            `text-sm ${isActive ? 'text-white' : 'text-neutral-400 hover:text-neutral-200'}`
+            `text-sm px-3 py-1.5 rounded-lg transition-colors ${
+              isActive
+                ? 'bg-green-500/10 text-green-400 font-medium'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60'
+            }`
           }
         >
           Programs
@@ -33,14 +43,18 @@ export default function Layout() {
         <NavLink
           to="/progress"
           className={({ isActive }) =>
-            `text-sm ${isActive ? 'text-white' : 'text-neutral-400 hover:text-neutral-200'}`
+            `text-sm px-3 py-1.5 rounded-lg transition-colors ${
+              isActive
+                ? 'bg-green-500/10 text-green-400 font-medium'
+                : 'text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60'
+            }`
           }
         >
           Progress
         </NavLink>
         <button
           onClick={logout}
-          className="ml-auto text-sm text-neutral-500 hover:text-neutral-300 cursor-pointer"
+          className="ml-auto text-sm text-neutral-600 hover:text-neutral-400 transition-colors cursor-pointer"
         >
           Log out
         </button>

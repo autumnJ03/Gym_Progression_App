@@ -21,9 +21,7 @@ export default function WorkoutPage() {
     queryFn: getTodaySession,
   })
 
-  // track logged sets per session_exercise_id
   const [loggedSets, setLoggedSets] = useState<Record<number, LoggedSet[]>>({})
-  // track current input state per exercise
   const [inputs, setInputs] = useState<Record<number, { weight: string; reps: string }>>({})
 
   const logMutation = useMutation({
@@ -59,7 +57,13 @@ export default function WorkoutPage() {
     onSuccess: () => navigate('/'),
   })
 
-  if (isLoading || !session) return <p className="text-neutral-500">Loading…</p>
+  if (isLoading || !session) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   function getNextSetNumber(ex: TodayExercise): number {
     return (loggedSets[ex.session_exercise_id]?.length ?? 0) + 1
@@ -70,6 +74,11 @@ export default function WorkoutPage() {
   }
 
   const allDone = session.exercises.every(allSetsLogged)
+  const totalDone = session.exercises.reduce(
+    (sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0),
+    0
+  )
+  const totalSets = session.exercises.reduce((sum, ex) => sum + ex.sets_prescribed, 0)
 
   function getInput(ex: TodayExercise, field: 'weight' | 'reps'): string {
     if (field === 'weight') {
@@ -101,22 +110,25 @@ export default function WorkoutPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <p className="text-xs text-neutral-500 uppercase tracking-widest mb-1">Workout</p>
-          <h2 className="text-2xl font-semibold text-white">{session.session_name}</h2>
+          <p className="text-xs text-green-500/70 uppercase tracking-widest font-medium mb-1">In session</p>
+          <h2 className="text-2xl font-bold text-white">{session.session_name}</h2>
         </div>
         {allDone ? (
           <button
             onClick={() => completeMutation.mutate()}
             disabled={completeMutation.isPending}
-            className="bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors cursor-pointer"
+            className="bg-green-500 hover:bg-green-400 disabled:opacity-50 text-black font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors cursor-pointer glow-green"
           >
-            {completeMutation.isPending ? 'Saving…' : 'Complete workout ✓'}
+            {completeMutation.isPending ? 'Saving…' : '✓ Complete workout'}
           </button>
         ) : (
-          <span className="text-xs text-neutral-500">
-            {session.exercises.reduce((sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0), 0)}
-            /{session.exercises.reduce((sum, ex) => sum + ex.sets_prescribed, 0)} sets done
-          </span>
+          <div className="text-right">
+            <p className="text-xs text-neutral-500">
+              <span className="text-green-400 font-semibold text-sm">{totalDone}</span>
+              <span className="text-neutral-600">/{totalSets}</span>
+            </p>
+            <p className="text-xs text-neutral-600">sets done</p>
+          </div>
         )}
       </div>
 
@@ -129,47 +141,50 @@ export default function WorkoutPage() {
           return (
             <div
               key={ex.session_exercise_id}
-              className="bg-[#1a1a1a] border border-neutral-800 rounded-xl p-4"
+              className={`bg-[#141414] border rounded-2xl p-4 transition-all ${
+                done
+                  ? 'border-green-500/30'
+                  : 'border-neutral-800'
+              }`}
             >
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-white font-medium">{ex.exercise_name}</h3>
+                <h3 className="text-white font-semibold">{ex.exercise_name}</h3>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-neutral-500">
-                    {Number(ex.current_weight) > 0 ? `${ex.current_weight} lbs` : `${ex.reps_prescribed} reps`}
+                    {Number(ex.current_weight) > 0 ? `${ex.current_weight} lbs` : `BW`}
                   </span>
-                  <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                    done
-                      ? 'bg-green-900/40 text-green-400'
-                      : 'bg-neutral-800 text-neutral-400'
-                  }`}>
-                    {logged.length}/{ex.sets_prescribed} sets
+                  <span
+                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                      done
+                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                    }`}
+                  >
+                    {logged.length}/{ex.sets_prescribed}
                   </span>
                 </div>
               </div>
 
-              {/* logged sets */}
               {logged.length > 0 && (
                 <div className="flex gap-2 mb-3 flex-wrap">
                   {logged.map((s) => (
                     <div
                       key={s.setNumber}
-                      className={`text-xs px-2 py-1 rounded-md font-medium ${
+                      className={`text-xs px-2.5 py-1 rounded-lg font-medium ${
                         s.hit
-                          ? 'bg-green-900/40 text-green-400 border border-green-800'
-                          : 'bg-red-900/30 text-red-400 border border-red-800'
+                          ? 'bg-green-900/30 text-green-400 border border-green-800/60'
+                          : 'bg-red-900/20 text-red-400 border border-red-800/60'
                       }`}
                     >
-                      Set {s.setNumber}: {s.weightUsed} lbs × {s.repsCompleted}{' '}
-                      {s.hit ? '✓' : '✗'}
+                      {s.weightUsed} lbs × {s.repsCompleted} {s.hit ? '✓' : '✗'}
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* log next set */}
               {!done && (
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-neutral-500 w-12">Set {nextSet}</span>
+                  <span className="text-xs text-neutral-600 w-10 shrink-0">Set {nextSet}</span>
                   <input
                     type="number"
                     step="0.25"
@@ -177,7 +192,7 @@ export default function WorkoutPage() {
                     value={getInput(ex, 'weight')}
                     onChange={(e) => setInput(ex.session_exercise_id, 'weight', e.target.value)}
                     placeholder="0"
-                    className="w-20 bg-[#111] border border-neutral-700 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-orange-500"
+                    className="w-20 bg-[#0f0f0f] border border-neutral-700 rounded-xl px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-green-500 transition-colors"
                   />
                   <span className="text-neutral-600 text-xs">lbs</span>
                   <input
@@ -186,19 +201,22 @@ export default function WorkoutPage() {
                     value={getInput(ex, 'reps')}
                     onChange={(e) => setInput(ex.session_exercise_id, 'reps', e.target.value)}
                     placeholder="reps"
-                    className="w-20 bg-[#111] border border-neutral-700 rounded-lg px-2 py-1.5 text-white text-sm text-center focus:outline-none focus:border-orange-500"
+                    className="w-20 bg-[#0f0f0f] border border-neutral-700 rounded-xl px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-green-500 transition-colors"
                   />
                   <span className="text-neutral-600 text-xs">reps</span>
                   <button
                     onClick={() => handleLog(ex)}
                     disabled={logMutation.isPending}
-                    className="ml-auto text-sm bg-neutral-700 hover:bg-neutral-600 disabled:opacity-50 text-white px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    className="ml-auto text-sm bg-green-500/15 hover:bg-green-500/25 border border-green-500/30 disabled:opacity-50 text-green-400 font-medium px-4 py-2 rounded-xl transition-colors cursor-pointer"
                   >
                     Log
                   </button>
                 </div>
               )}
 
+              {done && (
+                <p className="text-xs text-green-500/60 font-medium">All sets complete ✓</p>
+              )}
             </div>
           )
         })}
