@@ -12,8 +12,8 @@ app = FastAPI(title="Gym Progression API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=settings.allowed_origins.split(","),
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
