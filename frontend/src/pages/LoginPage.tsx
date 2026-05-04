@@ -31,7 +31,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="text-5xl mb-3">💪</div>
           <h1 className="text-2xl font-bold text-white mb-1">GymProg</h1>
-          <p className="text-neutral-500 text-sm">Track your lifts. Earn every lb.</p>
+          <p className="text-neutral-500 text-sm">Track your lifts.</p>
         </div>
 
         <form
