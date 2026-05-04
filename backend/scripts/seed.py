@@ -19,11 +19,23 @@ from app.models.session_exercise import SessionExercise
 # ── Program definition ────────────────────────────────────────────────────────
 
 EXERCISES = [
-    {"name": "Bench Press",    "muscle_group": "chest"},
-    {"name": "Overhead Press", "muscle_group": "shoulders"},
-    {"name": "Barbell Row",    "muscle_group": "back"},
-    {"name": "Squat",          "muscle_group": "legs"},
-    {"name": "Leg Press",      "muscle_group": "legs"},
+    {"name": "Bench Press",       "muscle_group": "chest"},
+    {"name": "Incline Press",     "muscle_group": "chest"},
+    {"name": "Shoulder Press",    "muscle_group": "shoulders"},
+    {"name": "Lateral Raise",     "muscle_group": "shoulders"},
+    {"name": "Tricep Extension",  "muscle_group": "triceps"},
+    {"name": "Tricep Pushdown",   "muscle_group": "triceps"},
+    {"name": "Lat Pulldown",      "muscle_group": "back"},
+    {"name": "Seated Row",        "muscle_group": "back"},
+    {"name": "Cable Row",         "muscle_group": "back"},
+    {"name": "Dumbbell Curl",     "muscle_group": "biceps"},
+    {"name": "Hammer Curl",       "muscle_group": "biceps"},
+    {"name": "Face Pull",         "muscle_group": "shoulders"},
+    {"name": "Squat",             "muscle_group": "legs"},
+    {"name": "Leg Press",         "muscle_group": "legs"},
+    {"name": "Leg Extension",     "muscle_group": "legs"},
+    {"name": "Leg Curl",          "muscle_group": "legs"},
+    {"name": "Calf Raise",        "muscle_group": "legs"},
 ]
 
 # (session_name, position, [(exercise_name, sets, reps, increment_lbs, order)])
@@ -32,23 +44,35 @@ SESSIONS = [
         "Push",  # Chest · Shoulders · Triceps
         1,
         [
-            ("Bench Press",    4, 8, Decimal("5.0"),  1),
-            ("Overhead Press", 4, 8, Decimal("2.5"),  2),
+            ("Bench Press",      3, 8, Decimal("5.0"),  1),
+            ("Incline Press",    3, 8, Decimal("5.0"),  2),
+            ("Shoulder Press",   3, 8, Decimal("2.5"),  3),
+            ("Lateral Raise",    3, 8, Decimal("2.5"),  4),
+            ("Tricep Extension", 3, 8, Decimal("2.5"),  5),
+            ("Tricep Pushdown",  3, 8, Decimal("2.5"),  6),
         ],
     ),
     (
         "Pull",  # Back · Biceps
         2,
         [
-            ("Barbell Row", 4, 8, Decimal("5.0"), 1),
+            ("Lat Pulldown",  3, 8, Decimal("5.0"), 1),
+            ("Seated Row",    3, 8, Decimal("5.0"), 2),
+            ("Cable Row",     3, 8, Decimal("5.0"), 3),
+            ("Dumbbell Curl", 3, 8, Decimal("2.5"), 4),
+            ("Hammer Curl",   3, 8, Decimal("2.5"), 5),
+            ("Face Pull",     3, 8, Decimal("2.5"), 6),
         ],
     ),
     (
-        "Legs",  # Quads · Hamstrings · Glutes · Calves
+        "Legs",  # Quads · Hamstrings · Calves
         3,
         [
-            ("Squat",     4, 8,  Decimal("5.0"),  1),
-            ("Leg Press", 4, 10, Decimal("10.0"), 2),
+            ("Squat",         3, 8, Decimal("5.0"),  1),
+            ("Leg Press",     3, 8, Decimal("10.0"), 2),
+            ("Leg Extension", 3, 8, Decimal("5.0"),  3),
+            ("Leg Curl",      3, 8, Decimal("5.0"),  4),
+            ("Calf Raise",    3, 8, Decimal("5.0"),  5),
         ],
     ),
 ]
