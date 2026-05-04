@@ -52,6 +52,7 @@ class ProgressPointOut(BaseModel):
 
 class ExerciseProgressOut(BaseModel):
     exercise_name: str
+    session_name: str
     history: list[ProgressPointOut]
 
 

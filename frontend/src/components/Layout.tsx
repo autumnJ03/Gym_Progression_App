@@ -1,8 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { clearToken } from '../hooks/useAuth'
+import { useWeightUnit } from '../contexts/WeightUnitContext'
 
 export default function Layout() {
   const navigate = useNavigate()
+  const { unit, toggle } = useWeightUnit()
 
   function logout() {
     clearToken()
@@ -52,12 +54,20 @@ export default function Layout() {
         >
           Progress
         </NavLink>
-        <button
-          onClick={logout}
-          className="ml-auto text-sm text-neutral-600 hover:text-neutral-400 transition-colors cursor-pointer"
-        >
-          Log out
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          <button
+            onClick={toggle}
+            className="text-xs bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-neutral-300 px-3 py-1.5 rounded-lg transition-colors cursor-pointer font-medium"
+          >
+            {unit === 'lbs' ? 'lbs → kg' : 'kg → lbs'}
+          </button>
+          <button
+            onClick={logout}
+            className="text-sm text-neutral-600 hover:text-neutral-400 transition-colors cursor-pointer"
+          >
+            Log out
+          </button>
+        </div>
       </nav>
       <main className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
         <Outlet />

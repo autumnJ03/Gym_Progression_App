@@ -7,6 +7,7 @@ export interface ProgressPoint {
 
 export interface ExerciseProgress {
   exercise_name: string
+  session_name: string
   history: ProgressPoint[]
 }
 

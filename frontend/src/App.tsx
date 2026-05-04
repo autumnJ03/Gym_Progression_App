@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { WeightUnitProvider } from './contexts/WeightUnitContext'
 import Layout from './components/Layout'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoginPage from './pages/LoginPage'
@@ -13,6 +14,7 @@ const qc = new QueryClient()
 
 export default function App() {
   return (
+    <WeightUnitProvider>
     <QueryClientProvider client={qc}>
       <BrowserRouter>
         <Routes>
@@ -30,5 +32,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </QueryClientProvider>
+    </WeightUnitProvider>
   )
 }

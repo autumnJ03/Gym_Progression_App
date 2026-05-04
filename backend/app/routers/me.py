@@ -14,6 +14,7 @@ from app.repositories import session as session_repo
 from app.repositories import user_program as user_program_repo
 from app.repositories import workout as workout_repo
 from app.models.exercise import Exercise
+from app.models.program_session import ProgramSession
 from app.models.session_exercise import SessionExercise
 from app.models.set_log import SetLog
 from app.schemas.workout import (
@@ -162,26 +163,29 @@ async def progress(
         await db.execute(
             select(
                 Exercise.name,
+                ProgramSession.name.label("session_name"),
                 WorkoutLog.completed_at,
                 func.max(SetLog.weight_used).label("max_weight"),
             )
             .join(SetLog, SetLog.workout_log_id == WorkoutLog.id)
             .join(SessionExercise, SetLog.session_exercise_id == SessionExercise.id)
             .join(Exercise, SessionExercise.exercise_id == Exercise.id)
+            .join(ProgramSession, SessionExercise.session_id == ProgramSession.id)
             .join(UserProgram, WorkoutLog.user_program_id == UserProgram.id)
             .where(UserProgram.user_id == user_id, WorkoutLog.completed_at != None)
-            .group_by(Exercise.name, WorkoutLog.id, WorkoutLog.completed_at)
-            .order_by(Exercise.name, WorkoutLog.completed_at)
+            .group_by(Exercise.name, ProgramSession.name, WorkoutLog.id, WorkoutLog.completed_at)
+            .order_by(ProgramSession.name, Exercise.name, WorkoutLog.completed_at)
         )
     ).all()
 
-    grouped: dict[str, list[ProgressPointOut]] = {}
-    for name, completed_at, max_weight in rows:
-        grouped.setdefault(name, []).append(
-            ProgressPointOut(
-                date=completed_at.strftime("%Y-%m-%d"),
-                weight=float(max_weight),
-            )
+    grouped: dict[tuple[str, str], list[ProgressPointOut]] = {}
+    for name, session_name, completed_at, max_weight in rows:
+        key = (session_name, name)
+        grouped.setdefault(key, []).append(
+            ProgressPointOut(date=completed_at.strftime("%Y-%m-%d"), weight=float(max_weight))
         )
 
-    return [ExerciseProgressOut(exercise_name=k, history=v) for k, v in grouped.items()]
+    return [
+        ExerciseProgressOut(exercise_name=ex_name, session_name=sn, history=hist)
+        for (sn, ex_name), hist in grouped.items()
+    ]

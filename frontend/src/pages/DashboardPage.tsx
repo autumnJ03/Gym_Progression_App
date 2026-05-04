@@ -2,10 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { acceptReturnReduction, getStatus, getTodaySession } from '../api/programs'
 import { startWorkout } from '../api/workout'
+import { useWeightUnit } from '../contexts/WeightUnitContext'
 
 export default function DashboardPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { toDisplay, unitLabel } = useWeightUnit()
 
   const { data: session, isLoading, error } = useQuery({
     queryKey: ['today'],
@@ -116,7 +118,7 @@ export default function DashboardPage() {
             </div>
             <div className="text-right">
               <p className="text-green-400 font-semibold text-sm">
-                {Number(ex.current_weight) === 0 ? '—' : `${ex.current_weight} lbs`}
+                {Number(ex.current_weight) === 0 ? '—' : `${toDisplay(Number(ex.current_weight))} ${unitLabel}`}
               </p>
             </div>
           </div>

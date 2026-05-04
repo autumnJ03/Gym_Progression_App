@@ -80,6 +80,22 @@ async def get_sets_for_workout(db: AsyncSession, workout_log_id: int) -> list[Se
     return list(result.scalars().all())
 
 
+async def delete_set(
+    db: AsyncSession,
+    set_log_id: int,
+    workout_log_id: int,
+) -> bool:
+    result = await db.execute(
+        select(SetLog).where(SetLog.id == set_log_id, SetLog.workout_log_id == workout_log_id)
+    )
+    entry = result.scalar_one_or_none()
+    if not entry:
+        return False
+    await db.delete(entry)
+    await db.commit()
+    return True
+
+
 async def update_set(
     db: AsyncSession,
     set_log_id: int,

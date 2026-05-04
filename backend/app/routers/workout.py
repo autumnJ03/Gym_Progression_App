@@ -62,6 +62,23 @@ async def get_sets(
     ]
 
 
+@router.delete("/{workout_log_id}/sets/{set_log_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_set(
+    workout_log_id: int,
+    set_log_id: int,
+    user_id: int = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    log = await workout_repo.get_by_id_for_user(db, workout_log_id, user_id)
+    if not log:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workout not found")
+    if log.completed_at:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Workout already completed")
+    found = await workout_repo.delete_set(db, set_log_id, workout_log_id)
+    if not found:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Set not found")
+
+
 @router.patch("/{workout_log_id}/sets/{set_log_id}")
 async def update_set(
     workout_log_id: int,

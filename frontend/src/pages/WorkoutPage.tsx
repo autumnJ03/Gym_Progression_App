@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import { getTodaySession, type TodayExercise } from '../api/programs'
-import { completeWorkout, getSets, logSet, updateSet } from '../api/workout'
+import { completeWorkout, deleteSet, getSets, logSet, updateSet } from '../api/workout'
+import { useWeightUnit } from '../contexts/WeightUnitContext'
 
 interface LoggedSet {
   id: number
@@ -14,7 +15,6 @@ interface LoggedSet {
 
 interface EditingSet {
   setLogId: number
-  seId: number
   weight: string
   reps: string
 }
@@ -23,6 +23,7 @@ export default function WorkoutPage() {
   const { workoutLogId } = useParams<{ workoutLogId: string }>()
   const navigate = useNavigate()
   const id = Number(workoutLogId)
+  const { unit, toDisplay, toStorage } = useWeightUnit()
 
   const { data: session, isLoading: sessionLoading } = useQuery({
     queryKey: ['today'],
@@ -40,7 +41,6 @@ export default function WorkoutPage() {
   const [editingSet, setEditingSet] = useState<EditingSet | null>(null)
   const initializedRef = useRef(false)
 
-  // Populate logged sets from server on resume
   useEffect(() => {
     if (!existingSets || !session || initializedRef.current) return
     initializedRef.current = true
@@ -59,22 +59,14 @@ export default function WorkoutPage() {
   }, [existingSets, session])
 
   const logMutation = useMutation({
-    mutationFn: ({
-      seId, setNum, weight, reps,
-    }: { seId: number; setNum: number; weight: number; reps: number }) =>
+    mutationFn: ({ seId, setNum, weight, reps }: { seId: number; setNum: number; weight: number; reps: number }) =>
       logSet(id, seId, setNum, weight, reps),
     onSuccess: (result, vars) => {
       setLoggedSets((prev) => ({
         ...prev,
         [vars.seId]: [
           ...(prev[vars.seId] ?? []),
-          {
-            id: result.id,
-            setNumber: vars.setNum,
-            weightUsed: vars.weight,
-            repsCompleted: vars.reps,
-            hit: result.hit,
-          },
+          { id: result.id, setNumber: vars.setNum, weightUsed: vars.weight, repsCompleted: vars.reps, hit: result.hit },
         ],
       }))
     },
@@ -96,6 +88,19 @@ export default function WorkoutPage() {
         return updated
       })
       setEditingSet(null)
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: ({ setLogId }: { setLogId: number }) => deleteSet(id, setLogId),
+    onSuccess: (_, vars) => {
+      setLoggedSets((prev) => {
+        const updated = { ...prev }
+        for (const seId of Object.keys(updated)) {
+          updated[Number(seId)] = updated[Number(seId)].filter((s) => s.id !== vars.setLogId)
+        }
+        return updated
+      })
     },
   })
 
@@ -121,33 +126,37 @@ export default function WorkoutPage() {
   }
 
   const allDone = session.exercises.every(allSetsLogged)
-  const totalDone = session.exercises.reduce(
-    (sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0), 0
-  )
+  const totalDone = session.exercises.reduce((sum, ex) => sum + (loggedSets[ex.session_exercise_id]?.length ?? 0), 0)
   const totalSets = session.exercises.reduce((sum, ex) => sum + ex.sets_prescribed, 0)
 
   function getInput(ex: TodayExercise, field: 'weight' | 'reps'): string {
-    if (field === 'weight') return inputs[ex.session_exercise_id]?.weight ?? String(ex.current_weight)
+    if (field === 'weight') {
+      const stored = inputs[ex.session_exercise_id]?.weight
+      if (stored !== undefined) return stored
+      return String(toDisplay(Number(ex.current_weight)))
+    }
     return inputs[ex.session_exercise_id]?.reps ?? '8'
   }
 
   function handleLog(ex: TodayExercise) {
-    const weight = parseFloat(getInput(ex, 'weight'))
+    const raw = parseFloat(getInput(ex, 'weight'))
     const reps = parseInt(getInput(ex, 'reps'))
-    if (isNaN(weight) || isNaN(reps)) return
+    if (isNaN(raw) || isNaN(reps)) return
+    const weight = toStorage(raw)
     logMutation.mutate({ seId: ex.session_exercise_id, setNum: getNextSetNumber(ex), weight, reps })
-  }
-
-  function setInput(seId: number, field: 'weight' | 'reps', value: string) {
-    setInputs((prev) => ({ ...prev, [seId]: { ...prev[seId], [field]: value } }))
   }
 
   function handleSaveEdit() {
     if (!editingSet) return
-    const weight = parseFloat(editingSet.weight)
+    const raw = parseFloat(editingSet.weight)
     const reps = parseInt(editingSet.reps)
-    if (isNaN(weight) || isNaN(reps)) return
+    if (isNaN(raw) || isNaN(reps)) return
+    const weight = toStorage(raw)
     updateMutation.mutate({ setLogId: editingSet.setLogId, weight, reps })
+  }
+
+  function setInput(seId: number, field: 'weight' | 'reps', value: string) {
+    setInputs((prev) => ({ ...prev, [seId]: { ...prev[seId], [field]: value } }))
   }
 
   return (
@@ -185,23 +194,19 @@ export default function WorkoutPage() {
           return (
             <div
               key={ex.session_exercise_id}
-              className={`bg-[#141414] border rounded-2xl p-4 transition-all ${
-                done ? 'border-green-500/30' : 'border-neutral-800'
-              }`}
+              className={`bg-[#141414] border rounded-2xl p-4 transition-all ${done ? 'border-green-500/30' : 'border-neutral-800'}`}
             >
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-white font-semibold">{ex.exercise_name}</h3>
                 <div className="flex items-center gap-2">
                   {Number(ex.current_weight) > 0 && (
-                    <span className="text-xs text-neutral-500">{ex.current_weight} lbs</span>
+                    <span className="text-xs text-neutral-500">{toDisplay(Number(ex.current_weight))} {unit}</span>
                   )}
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                      done
-                        ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                        : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
-                    }`}
-                  >
+                  <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    done
+                      ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                      : 'bg-neutral-800 text-neutral-400 border border-neutral-700'
+                  }`}>
                     {logged.length}/{ex.sets_prescribed}
                   </span>
                 </div>
@@ -219,7 +224,7 @@ export default function WorkoutPage() {
                           onChange={(e) => setEditingSet({ ...editingSet, weight: e.target.value })}
                           className="w-16 bg-[#0f0f0f] border border-green-500/50 rounded-lg px-2 py-1 text-white text-xs text-center focus:outline-none"
                         />
-                        <span className="text-neutral-600 text-xs">lbs</span>
+                        <span className="text-neutral-600 text-xs">{unit}</span>
                         <input
                           type="number"
                           value={editingSet.reps}
@@ -231,15 +236,11 @@ export default function WorkoutPage() {
                           onClick={handleSaveEdit}
                           disabled={updateMutation.isPending}
                           className="text-xs bg-green-500/20 border border-green-500/40 text-green-400 px-2 py-1 rounded-lg cursor-pointer hover:bg-green-500/30 transition-colors"
-                        >
-                          ✓
-                        </button>
+                        >✓</button>
                         <button
                           onClick={() => setEditingSet(null)}
                           className="text-xs text-neutral-500 hover:text-neutral-300 px-1 cursor-pointer"
-                        >
-                          ✕
-                        </button>
+                        >✕</button>
                       </div>
                     ) : (
                       <div
@@ -250,21 +251,18 @@ export default function WorkoutPage() {
                             : 'bg-red-900/20 text-red-400 border border-red-800/60'
                         }`}
                       >
-                        {s.weightUsed} lbs × {s.repsCompleted} {s.hit ? '✓' : '✗'}
+                        {toDisplay(s.weightUsed)} {unit} × {s.repsCompleted} {s.hit ? '✓' : '✗'}
                         <button
-                          onClick={() =>
-                            setEditingSet({
-                              setLogId: s.id,
-                              seId: ex.session_exercise_id,
-                              weight: String(s.weightUsed),
-                              reps: String(s.repsCompleted),
-                            })
-                          }
-                          className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-neutral-300 transition-opacity cursor-pointer ml-0.5"
-                          title="Edit set"
-                        >
-                          ✎
-                        </button>
+                          onClick={() => setEditingSet({ setLogId: s.id, weight: String(toDisplay(s.weightUsed)), reps: String(s.repsCompleted) })}
+                          className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-neutral-300 transition-opacity cursor-pointer"
+                          title="Edit"
+                        >✎</button>
+                        <button
+                          onClick={() => deleteMutation.mutate({ setLogId: s.id })}
+                          disabled={deleteMutation.isPending}
+                          className="opacity-0 group-hover:opacity-100 text-neutral-500 hover:text-red-400 transition-opacity cursor-pointer"
+                          title="Delete"
+                        >✕</button>
                       </div>
                     )
                   )}
@@ -280,16 +278,14 @@ export default function WorkoutPage() {
                     min="0"
                     value={getInput(ex, 'weight')}
                     onChange={(e) => setInput(ex.session_exercise_id, 'weight', e.target.value)}
-                    placeholder="0"
                     className="w-20 bg-[#0f0f0f] border border-neutral-700 rounded-xl px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-green-500 transition-colors"
                   />
-                  <span className="text-neutral-600 text-xs">lbs</span>
+                  <span className="text-neutral-600 text-xs">{unit}</span>
                   <input
                     type="number"
                     min="0"
                     value={getInput(ex, 'reps')}
                     onChange={(e) => setInput(ex.session_exercise_id, 'reps', e.target.value)}
-                    placeholder="reps"
                     className="w-20 bg-[#0f0f0f] border border-neutral-700 rounded-xl px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-green-500 transition-colors"
                   />
                   <span className="text-neutral-600 text-xs">reps</span>
@@ -303,9 +299,7 @@ export default function WorkoutPage() {
                 </div>
               )}
 
-              {done && (
-                <p className="text-xs text-green-500/60 font-medium">All sets complete ✓</p>
-              )}
+              {done && <p className="text-xs text-green-500/60 font-medium">All sets complete ✓</p>}
             </div>
           )
         })}

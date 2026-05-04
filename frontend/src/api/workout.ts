@@ -43,6 +43,10 @@ export async function completeWorkout(workoutLogId: number): Promise<void> {
   await client.post(`/me/workout/${workoutLogId}/complete`)
 }
 
+export async function deleteSet(workoutLogId: number, setLogId: number): Promise<void> {
+  await client.delete(`/me/workout/${workoutLogId}/sets/${setLogId}`)
+}
+
 export async function getSets(workoutLogId: number): Promise<SetLog[]> {
   const { data } = await client.get<SetLog[]>(`/me/workout/${workoutLogId}/sets`)
   return data
