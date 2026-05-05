@@ -3,6 +3,10 @@
     {
       "source": "/api/v1/:path*",
       "destination": "https://gym-progression-app.onrender.com/api/v1/:path*"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
