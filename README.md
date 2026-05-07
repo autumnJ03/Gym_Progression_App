@@ -2,7 +2,7 @@
 
 A full-stack web app for tracking gym workouts and progressive overload. Log your sets, track your weights over time, and let the app automatically progress your lifts.
 
-**Live app:** [gym-progression-app.vercel.app](https://gym-progression-app.vercel.app)
+**Live app:** [gymprog.vercel.app](https://gymprog.vercel.app)
 
 ---
 
