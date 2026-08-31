@@ -8,7 +8,7 @@ from app.routers import auth, me, programs, workout
 if settings.sentry_dsn:
     sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0.2)
 
-app = FastAPI(title="Gym Progression API")
+app = FastAPI(title="GymFlow API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -22,3 +22,11 @@ app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
 app.include_router(programs.router, prefix="/api/v1/programs", tags=["programs"])
 app.include_router(me.router, prefix="/api/v1/me", tags=["me"])
 app.include_router(workout.router, prefix="/api/v1/me/workout", tags=["workout"])
+
+
+@app.get("/health", tags=["system"])
+async def health_check() -> dict[str, str]:
+    return {
+        "status": "ok",
+        "service": "gymflow-api",
+    }
